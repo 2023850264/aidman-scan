@@ -66,36 +66,38 @@ const UploadSection = () => {
         .from("blood-smears")
         .getPublicUrl(fileName);
 
-      // Insert record into uploads table
-      const { error: insertError } = await supabase
+      // Insert record into uploads table and get the ID
+      const { data: uploadRecord, error: insertError } = await supabase
         .from("uploads")
         .insert({
           user_id: user.id,
           file_url: publicUrl,
           file_name: selectedFile.name,
           status: "pending",
-        });
+        })
+        .select()
+        .single();
 
       if (insertError) throw insertError;
 
       // Trigger AI analysis
-      const { data: insertData } = await supabase
-        .from("uploads")
-        .select("id")
-        .eq("file_url", publicUrl)
-        .single();
+      const { error: analysisError } = await supabase.functions.invoke('analyze-blood-smear', {
+        body: { uploadId: uploadRecord.id }
+      });
 
-      if (insertData?.id) {
-        // Call edge function to analyze the image
-        supabase.functions.invoke("analyze-blood-smear", {
-          body: { uploadId: insertData.id }
+      if (analysisError) {
+        console.error('Analysis error:', analysisError);
+        toast({
+          variant: "destructive",
+          title: "Analysis started with errors",
+          description: "Image uploaded but analysis may have failed. Check results shortly.",
+        });
+      } else {
+        toast({
+          title: "Analysis started!",
+          description: "Your blood smear image is being analyzed. Results will appear shortly.",
         });
       }
-
-      toast({
-        title: "Upload successful!",
-        description: "Your blood smear image is being analyzed. Results will appear shortly.",
-      });
 
       // Reset form
       setSelectedFile(null);

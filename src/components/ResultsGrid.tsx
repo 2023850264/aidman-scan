@@ -22,8 +22,8 @@ const ResultsGrid = () => {
 
   useEffect(() => {
     fetchUploads();
-    
-    // Set up realtime subscription for updates
+
+    // Set up realtime subscription for upload changes
     const channel = supabase
       .channel('uploads-changes')
       .on(

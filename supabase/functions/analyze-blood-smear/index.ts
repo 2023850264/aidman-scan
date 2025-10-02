@@ -14,7 +14,10 @@ serve(async (req) => {
 
   try {
     const { uploadId } = await req.json();
-    console.log('Analyzing upload:', uploadId);
+    
+    if (!uploadId) {
+      throw new Error('Upload ID is required');
+    }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -22,17 +25,16 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get upload details
+    // Get the upload record
     const { data: upload, error: uploadError } = await supabase
       .from('uploads')
       .select('*')
       .eq('id', uploadId)
       .single();
 
-    if (uploadError || !upload) {
-      console.error('Upload not found:', uploadError);
-      throw new Error('Upload not found');
-    }
+    if (uploadError) throw uploadError;
+
+    console.log('Analyzing upload:', uploadId, 'Image URL:', upload.file_url);
 
     // Update status to processing
     await supabase
@@ -40,7 +42,7 @@ serve(async (req) => {
       .update({ status: 'processing' })
       .eq('id', uploadId);
 
-    // Analyze with Lovable AI (Gemini 2.5 Flash with vision)
+    // Call Lovable AI with vision capabilities
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -52,14 +54,14 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert medical AI assistant specializing in malaria diagnosis from thin blood smear microscopy images. Analyze images for the presence of malaria parasites (Plasmodium species). Provide: 1) diagnosis (positive/negative), 2) confidence score (0-100), 3) number of parasites detected, 4) brief findings.'
+            content: 'You are an expert medical AI assistant specialized in analyzing blood smear microscopy images for malaria parasite detection. Analyze the image carefully and provide a detailed diagnosis.'
           },
           {
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: 'Analyze this thin blood smear image for malaria parasites. Provide a diagnosis, confidence score, parasite count, and findings.'
+                text: 'Analyze this blood smear image for malaria parasites. Provide: 1) Diagnosis result (positive/negative), 2) Confidence score (0-100), 3) Number of parasites detected (if any), 4) Brief description of findings. Format your response as JSON with keys: result, confidence, parasites_count, description.'
               },
               {
                 type: 'image_url',
@@ -70,71 +72,112 @@ serve(async (req) => {
             ]
           }
         ],
-        max_tokens: 500
+        temperature: 0.3,
       }),
     });
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error('AI gateway error:', aiResponse.status, errorText);
+      console.error('AI API error:', aiResponse.status, errorText);
       
-      // Update status to failed
-      await supabase
-        .from('uploads')
-        .update({ status: 'failed' })
-        .eq('id', uploadId);
-      
+      if (aiResponse.status === 429) {
+        throw new Error('Rate limit exceeded. Please try again later.');
+      }
+      if (aiResponse.status === 402) {
+        throw new Error('AI credits exhausted. Please add credits to continue.');
+      }
       throw new Error(`AI analysis failed: ${errorText}`);
     }
 
-    const aiResult = await aiResponse.json();
-    const analysis = aiResult.choices[0].message.content;
-    
-    console.log('AI Analysis:', analysis);
+    const aiData = await aiResponse.json();
+    const aiContent = aiData.choices?.[0]?.message?.content;
 
-    // Parse the AI response to extract structured data
-    const diagnosisMatch = analysis.toLowerCase().match(/(?:diagnosis|result):\s*(positive|negative)/i);
-    const confidenceMatch = analysis.match(/(?:confidence|probability|certainty):\s*(\d+)/i);
-    const parasiteMatch = analysis.match(/(?:parasite|parasites).*?(\d+)/i);
-    
-    const diagnosisResult = diagnosisMatch ? diagnosisMatch[1].toLowerCase() : 'negative';
-    const probabilityScore = confidenceMatch ? parseInt(confidenceMatch[1]) : 85;
-    const parasitesDetected = parasiteMatch ? parseInt(parasiteMatch[1]) : 0;
+    console.log('AI Response:', aiContent);
 
-    // Update upload with results
+    // Parse the AI response
+    let result = 'negative';
+    let confidence = 50;
+    let parasitesCount = 0;
+    let description = aiContent;
+
+    try {
+      // Try to extract JSON from the response
+      const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        result = parsed.result?.toLowerCase().includes('positive') ? 'positive' : 'negative';
+        confidence = parsed.confidence || 50;
+        parasitesCount = parsed.parasites_count || 0;
+        description = parsed.description || aiContent;
+      } else {
+        // Fallback: analyze the text content
+        const lowerContent = aiContent.toLowerCase();
+        result = lowerContent.includes('positive') || lowerContent.includes('detected') ? 'positive' : 'negative';
+        
+        // Extract confidence if mentioned
+        const confidenceMatch = aiContent.match(/(\d+)%/);
+        if (confidenceMatch) {
+          confidence = parseInt(confidenceMatch[1]);
+        }
+        
+        // Extract parasite count if mentioned
+        const parasiteMatch = aiContent.match(/(\d+)\s*parasite/i);
+        if (parasiteMatch) {
+          parasitesCount = parseInt(parasiteMatch[1]);
+        }
+      }
+    } catch (parseError) {
+      console.error('Error parsing AI response:', parseError);
+    }
+
+    // Update the upload record with results
     const { error: updateError } = await supabase
       .from('uploads')
       .update({
         status: 'completed',
-        diagnosis_result: diagnosisResult,
-        probability_score: probabilityScore,
-        parasites_detected: parasitesDetected
+        diagnosis_result: result,
+        probability_score: confidence,
+        parasites_detected: parasitesCount,
       })
       .eq('id', uploadId);
 
-    if (updateError) {
-      console.error('Failed to update upload:', updateError);
-      throw updateError;
-    }
+    if (updateError) throw updateError;
+
+    // Create a report
+    await supabase
+      .from('reports')
+      .insert({
+        user_id: upload.user_id,
+        upload_id: uploadId,
+        result_summary: `Diagnosis: ${result.toUpperCase()}\nConfidence: ${confidence}%\nParasites detected: ${parasitesCount}\n\nAnalysis:\n${description}`,
+        recommendations: result === 'positive' 
+          ? 'Immediate medical consultation recommended. Follow up with confirmatory testing and appropriate antimalarial treatment if confirmed.'
+          : 'No malaria parasites detected. Continue monitoring if symptoms persist. Consult healthcare provider for any concerns.'
+      });
+
+    console.log('Analysis completed successfully');
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        diagnosis: diagnosisResult,
-        confidence: probabilityScore,
-        parasites: parasitesDetected,
-        analysis
+      JSON.stringify({ 
+        success: true, 
+        result,
+        confidence,
+        parasitesCount 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: any) {
-    console.error('Error in analyze-blood-smear:', error);
+    console.error('Error in analyze-blood-smear function:', error);
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message || 'Analysis failed',
+        details: error.toString()
+      }),
       { 
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
   }
