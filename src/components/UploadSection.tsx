@@ -78,9 +78,23 @@ const UploadSection = () => {
 
       if (insertError) throw insertError;
 
+      // Trigger AI analysis
+      const { data: insertData } = await supabase
+        .from("uploads")
+        .select("id")
+        .eq("file_url", publicUrl)
+        .single();
+
+      if (insertData?.id) {
+        // Call edge function to analyze the image
+        supabase.functions.invoke("analyze-blood-smear", {
+          body: { uploadId: insertData.id }
+        });
+      }
+
       toast({
         title: "Upload successful!",
-        description: "Your blood smear image has been uploaded for analysis.",
+        description: "Your blood smear image is being analyzed. Results will appear shortly.",
       });
 
       // Reset form

@@ -1,1 +1,4 @@
 project_id = "wonpkodfjoxhqzngruyk"
+
+[functions.analyze-blood-smear]
+verify_jwt = false
