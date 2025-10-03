@@ -42,6 +42,24 @@ serve(async (req) => {
       .update({ status: 'processing' })
       .eq('id', uploadId);
 
+    // Generate a signed URL for the image (bucket is private)
+    const fileUrl: string = upload.file_url;
+    const splitMarker = '/blood-smears/';
+    const idx = fileUrl.indexOf(splitMarker);
+    if (idx === -1) {
+      throw new Error('Invalid file URL format for storage object');
+    }
+    const objectPath = fileUrl.slice(idx + splitMarker.length);
+    const { data: signedData, error: signedError } = await supabase
+      .storage
+      .from('blood-smears')
+      .createSignedUrl(objectPath, 60 * 15);
+    if (signedError || !signedData?.signedUrl) {
+      console.error('Signed URL error:', signedError);
+      throw new Error('Failed to create signed URL for image');
+    }
+    const imageAccessUrl = signedData.signedUrl;
+
     // Call Lovable AI with vision capabilities
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -66,7 +84,7 @@ serve(async (req) => {
               {
                 type: 'image_url',
                 image_url: {
-                  url: upload.file_url
+                  url: imageAccessUrl
                 }
               }
             ]
