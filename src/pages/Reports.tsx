@@ -5,7 +5,7 @@ import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Download, FileText } from "lucide-react";
+import { Loader2, Download, FileText, Activity, AlertCircle, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 
@@ -196,80 +196,117 @@ const Reports = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
       <Navbar />
       <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-            <FileText className="h-8 w-8" />
-            Analysis Reports
+        <div className="mb-8 animate-in fade-in slide-in-from-top duration-700">
+          <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-accent">
+              <FileText className="h-8 w-8 text-primary-foreground" />
+            </div>
+            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              Analysis Reports
+            </span>
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-lg ml-20">
             View and download your malaria blood smear analysis reports
           </p>
         </div>
 
         {reports.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No reports available yet</p>
+          <Card className="border-none shadow-lg animate-in fade-in slide-in-from-bottom duration-700">
+            <CardContent className="flex flex-col items-center justify-center py-16">
+              <div className="p-6 rounded-full bg-gradient-to-br from-muted to-muted/50 mb-6">
+                <FileText className="h-16 w-16 text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground text-lg">No reports available yet</p>
+              <p className="text-sm text-muted-foreground mt-2">Upload blood smear images to generate reports</p>
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-6">
-            {reports.map((report) => (
-              <Card key={report.id}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
+            {reports.map((report, index) => (
+              <Card 
+                key={report.id} 
+                className="hover-lift border-none shadow-lg overflow-hidden animate-in fade-in slide-in-from-bottom"
+                style={{ animationDelay: `${index * 100}ms`, animationDuration: "700ms" }}
+              >
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-accent to-primary"></div>
+                
+                <CardHeader className="bg-gradient-card">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <CardTitle className="flex items-center gap-3 text-xl mb-2">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <FileText className="h-5 w-5 text-primary" />
+                        </div>
                         {report.uploads.file_name}
                       </CardTitle>
-                      <CardDescription>
-                        {new Date(report.created_at).toLocaleString()}
+                      <CardDescription className="text-base">
+                        Generated {new Date(report.created_at).toLocaleString()}
                       </CardDescription>
                     </div>
                     <Button
                       onClick={() => downloadReport(report)}
                       variant="outline"
-                      size="sm"
-                      className="gap-2"
+                      size="lg"
+                      className="gap-2 bg-gradient-to-r from-primary to-accent text-primary-foreground border-none hover:shadow-lg hover:scale-105 transition-all"
                     >
-                      <Download className="h-4 w-4" />
+                      <Download className="h-5 w-5" />
                       Download PDF
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
-                    <div>
-                      <p className="text-sm font-medium">Diagnosis</p>
-                      <p className="text-lg">{report.uploads.diagnosis_result || 'N/A'}</p>
+
+                <CardContent className="space-y-6 pt-6">
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Activity className="h-5 w-5 text-primary" />
+                        <p className="text-sm font-medium text-muted-foreground">Diagnosis</p>
+                      </div>
+                      <p className="text-2xl font-bold">{report.uploads.diagnosis_result || 'N/A'}</p>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium">Confidence</p>
-                      <p className="text-lg">
+
+                    <div className="p-4 rounded-xl bg-gradient-to-br from-accent/10 to-success/10 border border-accent/20">
+                      <div className="flex items-center gap-3 mb-2">
+                        <TrendingUp className="h-5 w-5 text-accent" />
+                        <p className="text-sm font-medium text-muted-foreground">Confidence</p>
+                      </div>
+                      <p className="text-2xl font-bold">
                         {report.uploads.probability_score 
                           ? `${(report.uploads.probability_score * 100).toFixed(1)}%` 
                           : 'N/A'}
                       </p>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium">Parasites Detected</p>
-                      <p className="text-lg">{report.uploads.parasites_detected || 0}</p>
+
+                    <div className="p-4 rounded-xl bg-gradient-to-br from-destructive/10 to-warning/10 border border-destructive/20">
+                      <div className="flex items-center gap-3 mb-2">
+                        <AlertCircle className="h-5 w-5 text-destructive" />
+                        <p className="text-sm font-medium text-muted-foreground">Parasites Detected</p>
+                      </div>
+                      <p className="text-2xl font-bold">{report.uploads.parasites_detected || 0}</p>
                     </div>
                   </div>
 
-                  <div>
-                    <h3 className="font-semibold mb-2">Analysis Summary</h3>
-                    <p className="text-sm text-muted-foreground">{report.result_summary}</p>
+                  {/* Summary Section */}
+                  <div className="p-6 rounded-xl bg-muted/50 border border-border">
+                    <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                      <div className="w-1 h-6 bg-gradient-to-b from-primary to-accent rounded-full"></div>
+                      Analysis Summary
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed">{report.result_summary}</p>
                   </div>
 
+                  {/* Recommendations Section */}
                   {report.recommendations && (
-                    <div>
-                      <h3 className="font-semibold mb-2">Recommendations</h3>
-                      <p className="text-sm text-muted-foreground">{report.recommendations}</p>
+                    <div className="p-6 rounded-xl bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/10">
+                      <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                        <div className="w-1 h-6 bg-gradient-to-b from-accent to-success rounded-full"></div>
+                        Recommendations
+                      </h3>
+                      <p className="text-muted-foreground leading-relaxed">{report.recommendations}</p>
                     </div>
                   )}
                 </CardContent>

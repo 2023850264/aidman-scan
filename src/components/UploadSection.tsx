@@ -120,65 +120,73 @@ const UploadSection = () => {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Upload Blood Smear Image</CardTitle>
-        <CardDescription>
+    <Card className="border-none shadow-lg hover-lift overflow-hidden">
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-accent to-primary"></div>
+      <CardHeader className="bg-gradient-card">
+        <CardTitle className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          Upload Blood Smear Image
+        </CardTitle>
+        <CardDescription className="text-base">
           Upload a clear image of a thin blood smear for malaria parasite detection
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {!preview ? (
-          <label className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-12 cursor-pointer hover:border-primary transition-colors">
+          <label className="group relative flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-12 cursor-pointer transition-all duration-300 hover:border-primary hover:bg-gradient-to-br hover:from-primary/5 hover:to-accent/5">
             <input
               type="file"
               accept="image/*"
               onChange={handleFileSelect}
               className="hidden"
             />
-            <Upload className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-sm text-muted-foreground text-center">
+            <div className="p-4 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 mb-4 group-hover:scale-110 transition-transform duration-300">
+              <Upload className="h-12 w-12 text-primary" />
+            </div>
+            <p className="text-sm font-medium text-foreground text-center mb-2">
               Click to select or drag and drop your blood smear image
             </p>
-            <p className="text-xs text-muted-foreground mt-2">
+            <p className="text-xs text-muted-foreground">
               JPEG, PNG up to 10MB
             </p>
           </label>
         ) : (
           <div className="space-y-4">
-            <div className="relative rounded-lg overflow-hidden border">
+            <div className="relative rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg">
               <img
                 src={preview}
                 alt="Preview"
-                className="w-full h-64 object-contain bg-muted"
+                className="w-full h-64 object-contain bg-gradient-to-br from-muted to-muted/50"
               />
               <Button
                 variant="destructive"
                 size="icon"
-                className="absolute top-2 right-2"
+                className="absolute top-3 right-3 rounded-full shadow-lg hover:scale-110 transition-transform"
                 onClick={clearSelection}
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <div className="flex items-center gap-2">
-              <ImageIcon className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground truncate">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+              <ImageIcon className="h-5 w-5 text-primary" />
+              <span className="text-sm font-medium truncate">
                 {selectedFile?.name}
               </span>
             </div>
             <Button
               onClick={handleUpload}
               disabled={uploading}
-              className="w-full"
+              className="w-full h-12 text-base bg-gradient-to-r from-primary to-accent hover:shadow-lg hover:scale-105 transition-all"
             >
               {uploading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Uploading...
                 </>
               ) : (
-                "Upload & Analyze"
+                <>
+                  <Upload className="mr-2 h-5 w-5" />
+                  Upload & Analyze
+                </>
               )}
             </Button>
           </div>
