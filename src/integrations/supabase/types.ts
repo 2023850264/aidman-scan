@@ -36,6 +36,9 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          malaria_species: string | null
+          patient_bio: string | null
+          patient_name: string | null
           recommendations: string | null
           result_summary: string
           upload_id: string
@@ -44,6 +47,9 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          malaria_species?: string | null
+          patient_bio?: string | null
+          patient_name?: string | null
           recommendations?: string | null
           result_summary: string
           upload_id: string
@@ -52,6 +58,9 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          malaria_species?: string | null
+          patient_bio?: string | null
+          patient_name?: string | null
           recommendations?: string | null
           result_summary?: string
           upload_id?: string

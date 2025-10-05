@@ -1,9 +1,22 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, AlertCircle, CheckCircle, Clock, Image as ImageIcon } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle, Clock, Image as ImageIcon, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Upload {
   id: string;
@@ -60,17 +73,32 @@ const ResultsGrid = () => {
     }
   };
 
+  const handleDelete = async (id: string, fileName: string) => {
+    try {
+      const { error } = await supabase
+        .from("uploads")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      toast.success(`${fileName} deleted successfully`);
+    } catch (error: any) {
+      console.error("Error deleting upload:", error);
+      toast.error("Failed to delete upload");
+    }
+  };
+
   const getStatusBadge = (status: string, result: string | null) => {
     if (status === "pending" || status === "processing") {
-      return <Badge variant="outline"><Clock className="h-3 w-3 mr-1" /> Analyzing</Badge>;
+      return <Badge variant="outline" className="text-xs"><Clock className="h-3 w-3 mr-1" /> Analyzing</Badge>;
     }
     if (status === "failed") {
-      return <Badge variant="destructive"><AlertCircle className="h-3 w-3 mr-1" /> Failed</Badge>;
+      return <Badge variant="destructive" className="text-xs"><AlertCircle className="h-3 w-3 mr-1" /> Failed</Badge>;
     }
     if (result === "positive") {
-      return <Badge variant="destructive"><AlertCircle className="h-3 w-3 mr-1" /> Positive</Badge>;
+      return <Badge variant="destructive" className="text-xs"><AlertCircle className="h-3 w-3 mr-1" /> Positive</Badge>;
     }
-    return <Badge variant="default" className="bg-success"><CheckCircle className="h-3 w-3 mr-1" /> Negative</Badge>;
+    return <Badge variant="default" className="bg-success text-xs"><CheckCircle className="h-3 w-3 mr-1" /> Negative</Badge>;
   };
 
   if (loading) {
@@ -95,14 +123,44 @@ const ResultsGrid = () => {
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {uploads.map((upload, index) => (
         <Card 
           key={upload.id} 
-          className="hover-lift border-none shadow-lg overflow-hidden group animate-in fade-in slide-in-from-bottom"
+          className="hover-lift border-none shadow-lg overflow-hidden group animate-in fade-in slide-in-from-bottom relative"
           style={{ animationDelay: `${index * 100}ms`, animationDuration: "700ms" }}
         >
-          <div className="aspect-video bg-gradient-to-br from-muted to-muted/50 relative overflow-hidden">
+          {/* Delete button */}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 z-10 h-8 w-8 bg-destructive/90 hover:bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity rounded-full"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Analysis</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete "{upload.file_name}"? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => handleDelete(upload.id, upload.file_name)}
+                  className="bg-destructive hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <div className="aspect-[4/3] bg-gradient-to-br from-muted to-muted/50 relative overflow-hidden">
             <img
               src={upload.file_url}
               alt={upload.file_name}
@@ -110,26 +168,28 @@ const ResultsGrid = () => {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           </div>
-          <CardHeader className="pb-3 bg-gradient-card">
+          
+          <CardHeader className="pb-2 bg-gradient-card">
             <div className="flex items-start justify-between gap-2">
-              <CardTitle className="text-base truncate">{upload.file_name}</CardTitle>
+              <CardTitle className="text-sm truncate flex-1">{upload.file_name}</CardTitle>
               {getStatusBadge(upload.status, upload.diagnosis_result)}
             </div>
           </CardHeader>
-          <CardContent className="space-y-3">
+          
+          <CardContent className="space-y-2 pt-3">
             {upload.probability_score && (
-              <div className="flex justify-between items-center p-3 rounded-lg bg-primary/5 border border-primary/10">
-                <span className="text-sm text-muted-foreground">Confidence</span>
-                <span className="font-bold text-primary">{upload.probability_score}%</span>
+              <div className="flex justify-between items-center p-2 rounded-lg bg-primary/5 border border-primary/10">
+                <span className="text-xs text-muted-foreground">Confidence</span>
+                <span className="font-bold text-sm text-primary">{upload.probability_score}%</span>
               </div>
             )}
             {upload.parasites_detected > 0 && (
-              <div className="flex justify-between items-center p-3 rounded-lg bg-destructive/5 border border-destructive/10">
-                <span className="text-sm text-muted-foreground">Parasites</span>
-                <span className="font-bold text-destructive">{upload.parasites_detected}</span>
+              <div className="flex justify-between items-center p-2 rounded-lg bg-destructive/5 border border-destructive/10">
+                <span className="text-xs text-muted-foreground">Parasites</span>
+                <span className="font-bold text-sm text-destructive">{upload.parasites_detected}</span>
               </div>
             )}
-            <div className="text-xs text-muted-foreground pt-2 border-t">
+            <div className="text-xs text-muted-foreground pt-1 border-t">
               {formatDistanceToNow(new Date(upload.created_at), { addSuffix: true })}
             </div>
           </CardContent>
