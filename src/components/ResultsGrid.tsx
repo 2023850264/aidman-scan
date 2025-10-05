@@ -90,15 +90,15 @@ const ResultsGrid = () => {
 
   const getStatusBadge = (status: string, result: string | null) => {
     if (status === "pending" || status === "processing") {
-      return <Badge variant="outline" className="text-xs"><Clock className="h-3 w-3 mr-1" /> Analyzing</Badge>;
+      return <Badge variant="outline" className="text-[9px] px-1 py-0"><Clock className="h-2 w-2 mr-0.5" /></Badge>;
     }
     if (status === "failed") {
-      return <Badge variant="destructive" className="text-xs"><AlertCircle className="h-3 w-3 mr-1" /> Failed</Badge>;
+      return <Badge variant="destructive" className="text-[9px] px-1 py-0"><AlertCircle className="h-2 w-2 mr-0.5" /></Badge>;
     }
     if (result === "positive") {
-      return <Badge variant="destructive" className="text-xs"><AlertCircle className="h-3 w-3 mr-1" /> Positive</Badge>;
+      return <Badge variant="destructive" className="text-[9px] px-1 py-0">+</Badge>;
     }
-    return <Badge variant="default" className="bg-success text-xs"><CheckCircle className="h-3 w-3 mr-1" /> Negative</Badge>;
+    return <Badge variant="default" className="bg-success text-[9px] px-1 py-0">-</Badge>;
   };
 
   if (loading) {
@@ -123,11 +123,11 @@ const ResultsGrid = () => {
   }
 
   return (
-    <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
+    <div className="grid gap-2 grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
       {uploads.map((upload, index) => (
         <Card 
           key={upload.id} 
-          className="hover-lift border-none shadow-md overflow-hidden group animate-in fade-in slide-in-from-bottom relative"
+          className="hover-lift border-none shadow-sm overflow-hidden group animate-in fade-in slide-in-from-bottom relative"
           style={{ animationDelay: `${index * 50}ms`, animationDuration: "500ms" }}
         >
           {/* Delete button */}
@@ -164,32 +164,31 @@ const ResultsGrid = () => {
             <img
               src={upload.file_url}
               alt={upload.file_name}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           </div>
           
-          <CardHeader className="pb-1 pt-2 px-3 bg-gradient-card">
-            <div className="flex items-start justify-between gap-1">
-              <CardTitle className="text-xs truncate flex-1 leading-tight">{upload.file_name}</CardTitle>
+          <CardHeader className="pb-0.5 pt-1.5 px-2 bg-gradient-card">
+            <div className="flex items-center justify-between gap-1">
+              <CardTitle className="text-[10px] truncate flex-1 leading-tight">{upload.file_name}</CardTitle>
               {getStatusBadge(upload.status, upload.diagnosis_result)}
             </div>
           </CardHeader>
           
-          <CardContent className="space-y-1.5 pt-2 px-3 pb-3">
+          <CardContent className="space-y-1 pt-1.5 px-2 pb-2">
             {upload.probability_score && (
-              <div className="flex justify-between items-center px-2 py-1 rounded bg-primary/5 border border-primary/10">
-                <span className="text-[10px] text-muted-foreground">Confidence</span>
-                <span className="font-bold text-xs text-primary">{upload.probability_score}%</span>
+              <div className="flex justify-between items-center px-1.5 py-0.5 rounded bg-primary/5 border border-primary/10">
+                <span className="text-[9px] text-muted-foreground">Conf</span>
+                <span className="font-bold text-[10px] text-primary">{upload.probability_score}%</span>
               </div>
             )}
             {upload.parasites_detected > 0 && (
-              <div className="flex justify-between items-center px-2 py-1 rounded bg-destructive/5 border border-destructive/10">
-                <span className="text-[10px] text-muted-foreground">Parasites</span>
-                <span className="font-bold text-xs text-destructive">{upload.parasites_detected}</span>
+              <div className="flex justify-between items-center px-1.5 py-0.5 rounded bg-destructive/5 border border-destructive/10">
+                <span className="text-[9px] text-muted-foreground">Para</span>
+                <span className="font-bold text-[10px] text-destructive">{upload.parasites_detected}</span>
               </div>
             )}
-            <div className="text-[10px] text-muted-foreground pt-1 border-t">
+            <div className="text-[9px] text-muted-foreground pt-0.5 border-t truncate">
               {formatDistanceToNow(new Date(upload.created_at), { addSuffix: true })}
             </div>
           </CardContent>
