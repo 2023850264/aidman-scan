@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Microscope, LogOut, LayoutDashboard, FileText } from "lucide-react";
+import { Microscope, LogOut, LayoutDashboard, FileText, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 const Navbar = () => {
@@ -35,6 +35,12 @@ const Navbar = () => {
                 <Link to="/reports" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
                   Reports
+                </Link>
+              </Button>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/profile" className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Profile
                 </Link>
               </Button>
               <Button variant="outline" size="sm" onClick={handleSignOut}>
