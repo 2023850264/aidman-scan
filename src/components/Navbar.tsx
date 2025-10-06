@@ -39,13 +39,13 @@ const Navbar = () => {
         <div className="flex items-center gap-4">
           {user ? (
             <>
-              <Button variant="ghost" size="sm" asChild className="hidden md:flex">
+              <Button variant="ghost" size="sm" asChild>
                 <Link to="/dashboard" className="flex items-center gap-2">
                   <LayoutDashboard className="h-4 w-4" />
                   Dashboard
                 </Link>
               </Button>
-              <Button variant="ghost" size="sm" asChild className="hidden md:flex">
+              <Button variant="ghost" size="sm" asChild>
                 <Link to="/reports" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
                   Reports
@@ -79,18 +79,6 @@ const Navbar = () => {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild className="cursor-pointer md:hidden">
-                    <Link to="/dashboard" className="flex items-center">
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      <span>Dashboard</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="cursor-pointer md:hidden">
-                    <Link to="/reports" className="flex items-center">
-                      <FileText className="mr-2 h-4 w-4" />
-                      <span>Reports</span>
-                    </Link>
-                  </DropdownMenuItem>
                   <DropdownMenuItem asChild className="cursor-pointer">
                     <Link to="/profile" className="flex items-center">
                       <User className="mr-2 h-4 w-4" />
